@@ -36,7 +36,9 @@ var ddns_prov1 = '<% nvram_get_x("","ddns_server_x"); %>';
 var ddns_prov2 = '<% nvram_get_x("","ddns2_server"); %>';
 var ddns_hname = '<% nvram_get_x("","ddns_hostname_x"); %>';
 var ddns_list = [
+	[ 0x01, "WWW.ASUS.COM",         "(asuscomm)", "" ],
 	[ 0x0f, "WWW.DYNDNS.ORG",       "", "https://account.dyn.com/entrance/" ],
+	[ 0x0f, "WWW.TZO.COM",          "", "http://signup.tzo.com" ],
 	[ 0x0f, "WWW.ZONEEDIT.COM",     "", "http://www.zoneedit.com/signUp.html" ],
 	[ 0x01, "WWW.EASYDNS.COM",      "", "https://web.easydns.com/Open_Account/" ],
 	[ 0x0f, "WWW.NO-IP.COM",        "", "http://www.noip.com/newUser.php" ],
@@ -44,8 +46,11 @@ var ddns_list = [
 	[ 0x0f, "WWW.DNSEXIT.COM",      "", "https://www.dnsexit.com/Direct.sv?cmd=signup" ],
 	[ 0x0f, "WWW.CHANGEIP.COM",     "", "https://www.changeip.com/accounts/register.php" ],
 	[ 0x0f, "WWW.SITELUTIONS.COM",  "", "https://sitelutions.com/signup" ],
+	[ 0x0f, "WWW.ZERIGO.COM",       "", "https://www.zerigo.com/managed-dns/" ],
 	[ 0x0f, "WWW.DHIS.ORG",         "", "http://dhis.org/WebEngine.ipo?context=dhis.website.register" ],
+	[ 0x0f, "WWW.NIC.RU",           "(RU-CENTER)", "https://www.nic.ru/dns/service/dns_hosting/dns_master/dynamic_dns.html" ],
 	[ 0x0f, "WWW.DUCKDNS.ORG",      "", "https://www.duckdns.org/" ],
+	[ 0x0f, "WWW.DTDNS.COM",        "", "https://www.dtdns.com/dtsite/register" ],
 	[ 0x0f, "WWW.OVH.COM",          "", "https://www.ovh.com/" ],
 	[ 0x0f, "WWW.LOOPIA.COM",       "", "https://www.loopia.com/loopiadns/" ],
 	[ 0x0f, "WWW.DUIADNS.NET",      "", "https://www.duiadns.net/services" ],
@@ -156,7 +161,8 @@ function change_ddns_server(man)
 	showhide_div("row_ddns_ssl", (e && support_ddns_ssl()));
 	o.disabled = e;
 
-	showhide_div("row_ddns_wcard", 1);
+	e = (v == "WWW.EASYDNS.COM") ? 1 : 0;
+	showhide_div("row_ddns_wcard", e);
 
 	e = (v == "CUSTOM") ? 1 : 0;
 	showhide_div("row_ddns_cst_svr", e);
@@ -542,7 +548,7 @@ function checkDDNSReturnCode(){
                                                 </select>
                                             </td>
                                         </tr>
-                                        <tr id="row_ddns_wcard">
+                                        <tr id="row_ddns_wcard" style="display:none;">
                                             <th><a class="help_tooltip" href="javascript:void(0);" onmouseover="openTooltip(this,24,4);"><#LANHostConfig_x_DDNSWildcard_itemname#></a></th>
                                             <td>
                                                 <select name="ddns_wildcard_x" class="input">
