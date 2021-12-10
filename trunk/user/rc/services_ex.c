@@ -999,6 +999,7 @@ write_inadyn_conf(const char *conf_file)
 		nvram_set("ddns_server_x", inadyn_systems[0].alias);
 	}
 
+	i_ddns1_ssl    = nvram_get_int("ddns_ssl");
 	ddns1_hname[0] = nvram_safe_get("ddns_hostname_x");
 	ddns1_hname[1] = nvram_safe_get("ddns_hostname2_x");
 	ddns1_hname[2] = nvram_safe_get("ddns_hostname3_x");
@@ -1014,12 +1015,18 @@ write_inadyn_conf(const char *conf_file)
 	}
 
 	ddns2_svc = get_inadyn_system(nvram_safe_get("ddns2_server"));
+
 	ddns2_hname = nvram_safe_get("ddns2_hname");
 	ddns2_user  = nvram_safe_get("ddns2_user");
 	ddns2_pass  = nvram_safe_get("ddns2_pass");
 
+	if (use_delay)
+		use_delay = (!is_ntpc_updated()) ? 15 : 3;
+
 	fp = fopen(conf_file, "w");
 	if (fp) {
+		fprintf(fp, "background\n");
+		fprintf(fp, "verbose %d\n", nvram_safe_get_int("ddns_verbose", 0, 0, 5));
 		if (strlen(wan_ifname) > 0)
 			fprintf(fp, "iface = %s\n", wan_ifname);
 		fprintf(fp, "period = %d\n", i_ddns_period);
@@ -1123,7 +1130,7 @@ int
 notify_ddns_update(void)
 {
 	if (pids("inadyn")) {
-		write_inadyn_conf(DDNS_CONF_FILE);
+		write_inadyn_conf(DDNS_CONF_FILE, 1);
 		return doSystem("killall %s %s", "-SIGHUP", "inadyn");
 	}
 
@@ -1172,6 +1179,68 @@ get_ddns_fqdn(void)
 void
 manual_ddns_hostname_check(void)
 {
-	nvram_set_temp("ddns_return_code", "inadyn_unsupport");
+	int i_ddns_source;
+	char *mac_nvram, mac_str[16], wan_ifname[16];
+	const char *nvram_key = "ddns_return_code";
+	unsigned char mac_bin[ETHER_ADDR_LEN] = {0};
+	char *inadyn_argv[] = {
+		"/bin/inadyn",
+		"-S", "register@asus.com",
+		"-o",
+		NULL, NULL,
+		NULL, NULL,
+		NULL, NULL,
+		NULL, NULL,
+		NULL
+	};
+
+	if (get_ap_mode())
+		return;
+
+	if (!has_wan_ip4(0) || !has_wan_gw4()) {
+		nvram_set_temp(nvram_key, "connect_fail");
+		return;
+	}
+
+	stop_ddns();
+
+	if (get_wired_mac_is_single()) {
+		/* use original MAC LAN from EEPROM */
+		mac_nvram = "il0macaddr";
+	} else {
+		mac_nvram = "il1macaddr";
+	}
+
+	ether_atoe(nvram_safe_get(mac_nvram), mac_bin);
+
+	wan_ifname[0] = 0;
+	i_ddns_source = nvram_get_int("ddns_source");
+	if (i_ddns_source == 1)
+		get_wan_ifname(wan_ifname);
+	else if (i_ddns_source == 2)
+		strcpy(wan_ifname, get_man_ifname(0));
+
+	inadyn_argv[4] = "-u";
+	inadyn_argv[5] = ether_etoa3(mac_bin, mac_str);
+
+	inadyn_argv[6] = "-p";
+	inadyn_argv[7] = nvram_safe_get("secret_code");
+
+	inadyn_argv[8] = "-a";
+	inadyn_argv[9] = nvram_safe_get("ddns_hostname_x");
+
+	if (*wan_ifname) {
+		inadyn_argv[10] = "-i";
+		inadyn_argv[11] = wan_ifname;
+	}
+
+	nvram_set_temp(nvram_key, "ddns_query");
+
+	_eval(inadyn_argv, NULL, 0, NULL);
+
+	if (nvram_match(nvram_key, "ddns_query"))
+		nvram_set_temp(nvram_key, "connect_fail");
+
+	start_ddns(0);
 }
 
