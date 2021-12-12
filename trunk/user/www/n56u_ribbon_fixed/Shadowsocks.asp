@@ -1382,7 +1382,11 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 			document.getElementById("d_type").value = result.type;
 		}
 		function showsudlinkList() {
-			var key = "ssconf_basic_json_" + document.getElementById("u_nodeList").value;
+            var index = document.getElementById("u_nodeList").value;
+            if (index == "same") {
+                index = document.getElementById("nodeList").value;
+            }
+			var key = "ssconf_basic_json_" + index;
 			var result = JSON.parse(db_ss[key]);
 			document.getElementById("ud_type").value = result.type;
 		}
