@@ -1665,17 +1665,13 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 													<tr id="row_china_dns" style="display:none;">
 														<th width="50%">国内DNS(仅chinadns-ng生效)</th>
 														<td>
-															<select name="china_dns" class="input"
-																style="width: 200px;">
+															<select name="china_dns" class="input" style="width: 200px;">
+                                                                <option value="210.22.70.225#53">上海联通DNS (210.22.70.225)</option>
 																<option value="223.5.5.5#53">阿里DNS (223.5.5.5)</option>
-																<option value="114.114.114.114#53">114 DNS
-																	(114.114.114.114)</option>
-																<option value="117.50.11.11#53">OneDNS (117.50.11.11)
-																</option>
-																<option value="180.76.76.76#53">百度DNS (180.76.76.76)
-																</option>
-																<option value="119.29.29.29#53">DNSPOD DNS
-																	(119.29.29.29)</option>
+																<option value="114.114.114.114#53">114DNS (114.114.114.114)</option>
+																<option value="117.50.11.11#53">OneDNS (117.50.11.11)</option>
+																<option value="180.76.76.76#53">百度DNS (180.76.76.76)</option>
+																<option value="119.29.29.29#53">DNSPOD DNS(119.29.29.29)</option>
 																<option value="1.2.4.8#53">cnnic DNS (1.2.4.8)</option>
 															</select>
 														</td>
