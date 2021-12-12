@@ -1391,7 +1391,11 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 			document.getElementById("ud_type").value = result.type;
 		}
 		function shows5dlinkList() {
-			var key = "ssconf_basic_json_" + document.getElementById("s5_nodeList").value;
+            var index = document.getElementById("s5_nodeList").value;
+            if (index == "same") {
+                index = document.getElementById("nodeList").value;
+            }
+			var key = "ssconf_basic_json_" + index;
 			var result = JSON.parse(db_ss[key]);
 			document.getElementById("s5_type").value = result.type;
 		}
@@ -2402,7 +2406,7 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 														<td>
 															<select name="socks5_enable" id="s5_nodeList"
 																style="width: 200px;" onchange="shows5dlinkList()">
-																<option value="nil">停用</option>
+																<option value="nil" selected>停用</option>
 																<option value="same">与主服务相同</option>
 															</select>
 														</td>
