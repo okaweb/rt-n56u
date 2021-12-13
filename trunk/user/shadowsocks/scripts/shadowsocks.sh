@@ -110,7 +110,7 @@ get_arg_out() {
 }
 
 start_rules() {
-    logger -t "SS" "正在添加防火墙规则..."
+    logger -st "SS" "正在添加防火墙规则..."
     lua /etc_ro/ss/getconfig.lua $GLOBAL_SERVER > /tmp/server.txt
     server=`cat /tmp/server.txt`
     cat /etc/storage/ss_ip.sh | grep -v '^!' | grep -v "^$" >$wan_fw_ips
@@ -201,7 +201,7 @@ start_redir_tcp() {
     else
         threads=$(nvram get ss_threads)
     fi
-    logger -t "SS" "启动$stype主服务器..."
+    logger -st "SS" "启动$stype主服务器..."
     case "$stype" in
     ss | ssr)
         last_config_file=$CONFIG_FILE
@@ -241,7 +241,7 @@ start_redir_tcp() {
 start_redir_udp() {
     if [ "$UDP_RELAY_SERVER" != "nil" ]; then
         redir_udp=1
-        logger -t "SS" "启动$utype游戏UDP中继服务器"
+        logger -st "SS" "启动$utype游戏UDP中继服务器"
         utype=$(nvram get ud_type)
         local bin=$(find_bin $utype)
         [ ! -f "$bin" ] && echo "$(date "+%Y-%m-%d %H:%M:%S") UDP TPROXY Relay:Can't find $bin program, can't start!" >>/tmp/ssrplus.log && return 1
@@ -287,6 +287,24 @@ start_redir_udp() {
 start_dns() {
 case "$run_mode" in
     router)
+        restart_chinadns() {
+            logger -st "SS" "关闭chinadns..."
+            ps -l | grep 'dns2tcp' | grep -v grep | awk '{print $3}' | xargs -r kill -9
+            ps -l | grep 'chinadns-ng' | grep -v grep | awk '{print $3}' | xargs -r kill -9
+            ps -l | grep 'dnsmasq' | grep -v grep | awk '{print $3}' | xargs -r kill -9
+
+            touch /tmp/cdn.txt
+            logger -st "SS" "启动chinadns..."
+            dns2tcp -L"127.0.0.1#5353" -R"$(nvram get tunnel_forward)" >/dev/null 2>&1 &
+            chinadns-ng -b 0.0.0.0 -l 65353 -c $(nvram get china_dns) -t 127.0.0.1#5353 -4 china -M -m /tmp/cdn.txt -g /tmp/gfw.txt >/dev/null 2>&1 &
+            sed -i '/no-resolv/d' /etc/storage/dnsmasq/dnsmasq.conf
+            sed -i '/server=127.0.0.1/d' /etc/storage/dnsmasq/dnsmasq.conf
+            cat >> /etc/storage/dnsmasq/dnsmasq.conf << EOF
+no-resolv
+server=127.0.0.1#65353
+EOF
+            dnsmasq
+        }
         echo "create china hash:net family inet hashsize 1024 maxelem 65536" >/tmp/china.ipset
         awk '!/^$/&&!/^#/{printf("add china %s'" "'\n",$0)}' /etc/storage/chinadns/chnroute.txt >>/tmp/china.ipset
         ipset -! flush china
@@ -295,32 +313,29 @@ case "$run_mode" in
         if [ $(nvram get ss_chdns) = 1 ]; then
             chinadnsng_enable_flag=1
 
-            logger -t "SS" "下载cdn域名文件..."
-            wget --no-check-certificate --timeout=8 -qO - https://raw.githubusercontent.com/hq450/fancyss/master/rules/cdn.txt1 > /tmp/cdn.txt.tmp
+            logger -st "SS" "下载cdn域名文件..."
+            wget --no-check-certificate --timeout=8 -qO - https://raw.githubusercontent.com/hq450/fancyss/master/rules/cdn.txt > /tmp/cdn.txt.tmp
             if [ ! -s /tmp/cdn.txt.tmp ]; then
-                logger -t "SS" "下载cdn域名文件fancyss失败，继续尝试jsdelivr"
-                wget --no-check-certificate --timeout=8 -qO - https://cdn.jsdelivr.net/gh/felixonmars/dnsmasq-china-list/accelerated-domains.china.conf > /tmp/cdn.txt.tmp
-                cat /tmp/cdn.txt.tmp | awk -F'/' '{print $2}' | sort -u | grep -v "^$" > /tmp/cdn.txt.tmp
+                logger -st "SS" "下载cdn域名文件github-fancyss失败，继续尝试启动chinadns-ng打通外网网络后重试下载"
+                restart_chinadns
+                wget --no-check-certificate --timeout=8 -qO - https://raw.githubusercontent.com/hq450/fancyss/master/rules/cdn.txt > /tmp/cdn.txt.tmp
+                if [ ! -s /tmp/cdn.txt.tmp ]; then
+                    logger -st "SS" "下载cdn域名文件github-fancyss失败，继续尝试jsdelivr"
+                    wget --no-check-certificate --timeout=8 -qO - https://cdn.jsdelivr.net/gh/felixonmars/dnsmasq-china-list/accelerated-domains.china.conf > /tmp/cdn.txt.tmp
+                    cat /tmp/cdn.txt.tmp | awk -F'/' '{print $2}' | sort -u | grep -v "^$" > /tmp/cdn.txt.tmp2
+                    cat /tmp/cdn.txt.tmp2 > /tmp/cdn.txt.tmp
+                    rm -f /tmp/cdn.txt.tmp2
+                fi
             fi
             if [ ! -s /tmp/cdn.txt.tmp ]; then
-                logger -t "SS" "cdn域名文件下载失败，可能是地址失效或者网络异常！可能会影响部分国内域名解析了国外的IP！"
+                logger -st "SS" "cdn域名文件下载失败，可能是地址失效或者网络异常！可能会影响部分国内域名解析了国外的IP！"
             else
                 cat /tmp/cdn.txt.tmp > /tmp/cdn.txt
                 rm /tmp/cdn.txt.tmp
-                logger -t "SS" "cdn域名文件下载成功"
+                logger -st "SS" "cdn域名文件下载成功"
             fi
-            touch /tmp/cdn.txt
-
-            logger -st "SS" "启动chinadns..."
-            dns2tcp -L"127.0.0.1#5353" -R"$(nvram get tunnel_forward)" >/dev/null 2>&1 &
-            chinadns-ng -b 0.0.0.0 -l 65353 -c $(nvram get china_dns) -t 127.0.0.1#5353 -4 china -M -m /tmp/cdn.txt >/dev/null 2>&1 &
-            sed -i '/no-resolv/d' /etc/storage/dnsmasq/dnsmasq.conf
-            sed -i '/server=127.0.0.1/d' /etc/storage/dnsmasq/dnsmasq.conf
-            cat >> /etc/storage/dnsmasq/dnsmasq.conf << EOF
-no-resolv
-server=127.0.0.1#65353
-EOF
-            fi
+            restart_chinadns
+        fi
     ;;
     gfw)
         if [ $(nvram get pdnsd_enable) = 0 ]; then
@@ -355,9 +370,9 @@ start_AD() {
     mkdir -p /tmp/dnsmasq.dom
     curl -k -s -o /tmp/adnew.conf --connect-timeout 10 --retry 3 $(nvram get ss_adblock_url)
     if [ ! -f "/tmp/adnew.conf" ]; then
-        logger -t "SS" "AD文件下载失败，可能是地址失效或者网络异常！"
+        logger -st "SS" "AD文件下载失败，可能是地址失效或者网络异常！"
     else
-        logger -t "SS" "AD文件下载成功"
+        logger -st "SS" "AD文件下载成功"
         if [ -f "/tmp/adnew.conf" ]; then
             check = `grep -wq "address=" /tmp/adnew.conf`
             if [ ! -n "$check" ] ; then
@@ -474,8 +489,8 @@ if rules; then
         ENABLE_SERVER=$(nvram get global_server)
         [ "$ENABLE_SERVER" = "-1" ] && return 1
 
-        logger -t "SS" "启动成功。"
-        logger -t "SS" "内网IP控制为:$lancons"
+        logger -st "SS" "启动成功。"
+        logger -st "SS" "内网IP控制为:$lancons"
         nvram set check_mode=0
 }
 
@@ -503,93 +518,93 @@ ssp_close() {
 clear_iptable()
 {
     s5_port=$(nvram get socks5_port)
-    iptables -t filter -D INPUT -p tcp --dport $s5_port -j ACCEPT
-    iptables -t filter -D INPUT -p tcp --dport $s5_port -j ACCEPT
-    ip6tables -t filter -D INPUT -p tcp --dport $s5_port -j ACCEPT
-    ip6tables -t filter -D INPUT -p tcp --dport $s5_port -j ACCEPT
+    iptables  -t filter -D INPUT -p tcp --dport $s5_port -j ACCEPT 2>/dev/null
+    iptables  -t filter -D INPUT -p tcp --dport $s5_port -j ACCEPT 2>/dev/null
+    ip6tables -t filter -D INPUT -p tcp --dport $s5_port -j ACCEPT 2>/dev/null
+    ip6tables -t filter -D INPUT -p tcp --dport $s5_port -j ACCEPT 2>/dev/null
 
 }
 
 kill_process() {
     v2ray_process=$(pidof v2ray)
     if [ -n "$v2ray_process" ]; then
-        logger -t "SS" "关闭V2Ray进程..."
+        logger -st "SS" "关闭V2Ray进程..."
         killall v2ray >/dev/null 2>&1
         kill -9 "$v2ray_process" >/dev/null 2>&1
     fi
     ssredir=$(pidof ss-redir)
     if [ -n "$ssredir" ]; then
-        logger -t "SS" "关闭ss-redir进程..."
+        logger -st "SS" "关闭ss-redir进程..."
         killall ss-redir >/dev/null 2>&1
         kill -9 "$ssredir" >/dev/null 2>&1
     fi
 
     rssredir=$(pidof ssr-redir)
     if [ -n "$rssredir" ]; then
-        logger -t "SS" "关闭ssr-redir进程..."
+        logger -st "SS" "关闭ssr-redir进程..."
         killall ssr-redir >/dev/null 2>&1
         kill -9 "$rssredir" >/dev/null 2>&1
     fi
 
     sslocal_process=$(pidof ss-local)
     if [ -n "$sslocal_process" ]; then
-        logger -t "SS" "关闭ss-local进程..."
+        logger -st "SS" "关闭ss-local进程..."
         killall ss-local >/dev/null 2>&1
         kill -9 "$sslocal_process" >/dev/null 2>&1
     fi
 
     trojandir=$(pidof trojan)
     if [ -n "$trojandir" ]; then
-        logger -t "SS" "关闭trojan进程..."
+        logger -st "SS" "关闭trojan进程..."
         killall trojan >/dev/null 2>&1
         kill -9 "$trojandir" >/dev/null 2>&1
     fi
 
     kumasocks_process=$(pidof kumasocks)
     if [ -n "$kumasocks_process" ]; then
-        logger -t "SS" "关闭kumasocks进程..."
+        logger -st "SS" "关闭kumasocks进程..."
         killall kumasocks >/dev/null 2>&1
         kill -9 "$kumasocks_process" >/dev/null 2>&1
     fi
 
     ipt2socks_process=$(pidof ipt2socks)
     if [ -n "$ipt2socks_process" ]; then
-        logger -t "SS" "关闭ipt2socks进程..."
+        logger -st "SS" "关闭ipt2socks进程..."
         killall ipt2socks >/dev/null 2>&1
         kill -9 "$ipt2socks_process" >/dev/null 2>&1
     fi
 
     socks5_process=$(pidof srelay)
     if [ -n "$socks5_process" ]; then
-        logger -t "SS" "关闭socks5进程..."
+        logger -st "SS" "关闭socks5进程..."
         killall srelay >/dev/null 2>&1
         kill -9 "$socks5_process" >/dev/null 2>&1
     fi
 
     ssrs_process=$(pidof ssr-server)
     if [ -n "$ssrs_process" ]; then
-        logger -t "SS" "关闭ssr-server进程..."
+        logger -st "SS" "关闭ssr-server进程..."
         killall ssr-server >/dev/null 2>&1
         kill -9 "$ssrs_process" >/dev/null 2>&1
     fi
 
     cnd_process=$(pidof chinadns-ng)
     if [ -n "$cnd_process" ]; then
-        logger -t "SS" "关闭chinadns-ng进程..."
+        logger -st "SS" "关闭chinadns-ng进程..."
         killall chinadns-ng >/dev/null 2>&1
         kill -9 "$cnd_process" >/dev/null 2>&1
     fi
 
     dns2tcp_process=$(pidof dns2tcp)
     if [ -n "$dns2tcp_process" ]; then
-        logger -t "SS" "关闭dns2tcp进程..."
+        logger -st "SS" "关闭dns2tcp进程..."
         killall dns2tcp >/dev/null 2>&1
         kill -9 "$dns2tcp_process" >/dev/null 2>&1
     fi
 
     microsocks_process=$(pidof microsocks)
     if [ -n "$microsocks_process" ]; then
-        logger -t "SS" "关闭socks5服务端进程..."
+        logger -st "SS" "关闭socks5服务端进程..."
         killall microsocks >/dev/null 2>&1
         kill -9 "$microsocks_process" >/dev/null 2>&1
     fi
@@ -606,8 +621,8 @@ ressp() {
     start_watchcat
     auto_update
     ENABLE_SERVER=$(nvram get global_server)
-    logger -t "SS" "备用服务器启动成功"
-    logger -t "SS" "内网IP控制为:$lancons"
+    logger -st "SS" "备用服务器启动成功"
+    logger -st "SS" "内网IP控制为:$lancons"
 }
 
 case $1 in
