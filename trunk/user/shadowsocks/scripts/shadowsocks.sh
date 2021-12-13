@@ -294,6 +294,7 @@ case "$run_mode" in
             ps -l | grep 'dnsmasq' | grep -v grep | awk '{print $3}' | xargs -r kill -9
 
             touch /tmp/cdn.txt
+            touch /tmp/gfw.txt
             logger -st "SS" "启动chinadns..."
             dns2tcp -L"127.0.0.1#5353" -R"$(nvram get tunnel_forward)" >/dev/null 2>&1 &
             chinadns-ng -b 0.0.0.0 -l 65353 -c $(nvram get china_dns) -t 127.0.0.1#5353 -4 china -M -m /tmp/cdn.txt -g /tmp/gfw.txt >/dev/null 2>&1 &
@@ -317,8 +318,10 @@ EOF
             wget --no-check-certificate --timeout=8 -qO - https://raw.githubusercontent.com/hq450/fancyss/master/rules/cdn.txt > /tmp/cdn.txt.tmp
             if [ ! -s /tmp/cdn.txt.tmp ]; then
                 logger -st "SS" "下载cdn域名文件github-fancyss失败，继续尝试启动chinadns-ng打通外网网络后重试下载"
+                echo raw.githubusercontent.com > /tmp/gfw.txt
                 restart_chinadns
                 wget --no-check-certificate --timeout=8 -qO - https://raw.githubusercontent.com/hq450/fancyss/master/rules/cdn.txt > /tmp/cdn.txt.tmp
+                rm -f /tmp/gfw.txt && touch /tmp/gfw.txt
                 if [ ! -s /tmp/cdn.txt.tmp ]; then
                     logger -st "SS" "下载cdn域名文件github-fancyss失败，继续尝试jsdelivr"
                     wget --no-check-certificate --timeout=8 -qO - https://cdn.jsdelivr.net/gh/felixonmars/dnsmasq-china-list/accelerated-domains.china.conf > /tmp/cdn.txt.tmp
