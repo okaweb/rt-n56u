@@ -1382,12 +1382,20 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 			document.getElementById("d_type").value = result.type;
 		}
 		function showsudlinkList() {
-			var key = "ssconf_basic_json_" + document.getElementById("u_nodeList").value;
+            var index = document.getElementById("u_nodeList").value;
+            if (index == "same") {
+                index = document.getElementById("nodeList").value;
+            }
+			var key = "ssconf_basic_json_" + index;
 			var result = JSON.parse(db_ss[key]);
 			document.getElementById("ud_type").value = result.type;
 		}
 		function shows5dlinkList() {
-			var key = "ssconf_basic_json_" + document.getElementById("s5_nodeList").value;
+            var index = document.getElementById("s5_nodeList").value;
+            if (index == "same") {
+                index = document.getElementById("nodeList").value;
+            }
+			var key = "ssconf_basic_json_" + index;
 			var result = JSON.parse(db_ss[key]);
 			document.getElementById("s5_type").value = result.type;
 		}
@@ -1661,17 +1669,13 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 													<tr id="row_china_dns" style="display:none;">
 														<th width="50%">国内DNS(仅chinadns-ng生效)</th>
 														<td>
-															<select name="china_dns" class="input"
-																style="width: 200px;">
+															<select name="china_dns" class="input" style="width: 200px;">
+                                                                <option value="210.22.70.225#53">上海联通DNS (210.22.70.225)</option>
 																<option value="223.5.5.5#53">阿里DNS (223.5.5.5)</option>
-																<option value="114.114.114.114#53">114 DNS
-																	(114.114.114.114)</option>
-																<option value="117.50.11.11#53">OneDNS (117.50.11.11)
-																</option>
-																<option value="180.76.76.76#53">百度DNS (180.76.76.76)
-																</option>
-																<option value="119.29.29.29#53">DNSPOD DNS
-																	(119.29.29.29)</option>
+																<option value="114.114.114.114#53">114DNS (114.114.114.114)</option>
+																<option value="117.50.11.11#53">OneDNS (117.50.11.11)</option>
+																<option value="180.76.76.76#53">百度DNS (180.76.76.76)</option>
+																<option value="119.29.29.29#53">DNSPOD DNS(119.29.29.29)</option>
 																<option value="1.2.4.8#53">cnnic DNS (1.2.4.8)</option>
 															</select>
 														</td>
@@ -2402,7 +2406,7 @@ setTimeout('document.getElementById("btn_ctime").style.display="none";',1000);
 														<td>
 															<select name="socks5_enable" id="s5_nodeList"
 																style="width: 200px;" onchange="shows5dlinkList()">
-																<option value="nil">停用</option>
+																<option value="nil" selected>停用</option>
 																<option value="same">与主服务相同</option>
 															</select>
 														</td>
