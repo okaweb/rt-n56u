@@ -24,6 +24,7 @@ g_base_dir="/opt/rt-n56u"
 g_git_url="https://github.com/okaweb/rt-n56u.git"
 g_git_branch="develop"
 g_router_model="K2P"
+g_golang_version=1.17.5
 #*******************************************************************************
 # function to print message
 function print(){
@@ -51,16 +52,27 @@ rm -rf "${g_error_log}"
 #*******************************************************************************
 print "install dependent packages on Debian/Ubuntu started"
 
-sudo apt-get update >>"${g_error_log}" 2>&1
+sudo apt-get update >>"${g_error_log}" >>"${g_error_log}" 2>&1
 sudo apt-get --assume-yes install \
     unzip libtool-bin curl cmake gperf gawk flex bison nano xxd \
     fakeroot kmod cpio git python3-docutils gettext automake autopoint \
     texinfo build-essential help2man pkg-config zlib1g-dev libgmp3-dev \
-    libmpc-dev libmpfr-dev libncurses5-dev libltdl-dev wget libc-dev-bin >>"${g_error_log}" 2>&1
+    libmpc-dev libmpfr-dev libncurses5-dev libltdl-dev wget libc-dev-bin libev-dev >>"${g_error_log}" 2>&1
 
 sudo apt-get --assume-yes install libdbus-1-dev >>"${g_error_log}" 2>&1
 
 print "install dependent packages on Debian/Ubuntu completed"
+#*******************************************************************************
+print "install golang on Debian/Ubuntu started"
+if [[ ! -d /usr/local/go/bin ]]; then
+    wget https://go.dev/dl/go${g_golang_version}.linux-amd64.tar.gz -P /tmp >>"${g_error_log}" 2>&1
+    sudo tar -C /usr/local -xzf /tmp/go${g_golang_version}.linux-amd64.tar.gz >>"${g_error_log}" 2>&1
+    (grep "/usr/local/go/bin" ~/.profile >/dev/null) || (echo "export PATH=$PATH:/usr/local/go/bin" >> ~/.profile)
+    (grep "GOPATH"  ~/.profile >/dev/null) || (echo "export GOPATH=~/.go" >> ~/.profile)
+    source ~/.profile
+fi
+print "$(go version)"
+print "install golang on Debian/Ubuntu completed"
 #*******************************************************************************
 print "clone source code started"
 

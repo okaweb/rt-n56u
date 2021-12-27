@@ -77,17 +77,17 @@ flush_r() {
     $ipt_n -D PREROUTING -j SS_SPEC_WAN_DG         2>/dev/null
     $ipt_n -D OUTPUT -p tcp -j SS_SPEC_WAN_DG      2>/dev/null
     $ipt_n -X SS_SPEC_WAN_DG                       2>/dev/null
-    ipset ! -X ss_spec_lan_ac                      2>/dev/null
-    ipset ! -X ss_spec_wan_ac                      2>/dev/null
-    ipset ! -X ss_spec_dst_sp                      2>/dev/null
-    ipset ! -X ssr_gen_router                      2>/dev/null
-    ipset ! -X china                               2>/dev/null
-    ipset ! -X fplan                               2>/dev/null
-    ipset ! -X gmlan                               2>/dev/null
-    ipset ! -X oversea                             2>/dev/null
-    ipset ! -X gfwlist                             2>/dev/null
-    ipset ! -X blacklist                           2>/dev/null
-    ipset ! -X whitelist                           2>/dev/null
+    ipset -exist -X ss_spec_lan_ac                 2>/dev/null
+    ipset -exist -X ss_spec_wan_ac                 2>/dev/null
+    ipset -exist -X ss_spec_dst_sp                 2>/dev/null
+    ipset -exist -X ssr_gen_router                 2>/dev/null
+    ipset -exist -X china                          2>/dev/null
+    ipset -exist -X fplan                          2>/dev/null
+    ipset -exist -X gmlan                          2>/dev/null
+    ipset -exist -X oversea                        2>/dev/null
+    ipset -exist -X gfwlist                        2>/dev/null
+    ipset -exist -X blacklist                      2>/dev/null
+    ipset -exist -X whitelist                      2>/dev/null
     [ -n "$FWI" ] && echo '#!/bin/sh' >$FWI
     return 0
 }
